@@ -3,6 +3,7 @@ import $ from 'jquery';
 import BotaoSubmitCustomizado from './components/BotaoSubmitCustomizado';
 import ImputCustomizado from './components/InputCustomizado';
 import Pubsub from 'pubsub-js';
+import TratadorErros from './TratadorErros';
 
 class FormularioDoAutor extends Component {
 
@@ -25,9 +26,15 @@ class FormularioDoAutor extends Component {
           data: JSON.stringify({nome:this.state.nome,email:this.state.email,senha:this.state.senha}),
           success: function(novaListagem) {
             Pubsub.publish('atualiza-lista-autores',novaListagem);
-          },
+            this.setState({nome:'',email:'',senha:''});
+          }.bind(this),
           error: function(resposta) {
-            console.log("Error");
+            if(resposta.status === 400) {
+                new TratadorErros().publicaErros(resposta.responseJSON);
+            }
+          },
+          beforeSend: function() {
+              Pubsub.publish("limpa-erros", {});
           }
         });
     }
@@ -109,7 +116,7 @@ export default class AutorBox extends Component {
         });
 
         Pubsub.subscribe('atualiza-lista-autores', function(topico, novaListagem) {
-            this.setState({lista:novaLista});
+            this.setState({lista:novaListagem});
         }.bind(this));
     }
 
